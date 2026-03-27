@@ -15,7 +15,106 @@
             font-family: 'Segoe UI', sans-serif;
             color: white;
         }
-        h1 { margin-bottom: 30px; font-size: 2rem; letter-spacing: 2px; }
+
+        /* 인증 화면 */
+        #auth-screen {
+            background: #16213e;
+            padding: 40px;
+            border-radius: 16px;
+            width: 340px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        #auth-screen h2 {
+            text-align: center;
+            margin-bottom: 28px;
+            font-size: 1.6rem;
+        }
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 24px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #ffffff22;
+        }
+        .tab-buttons button {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            color: #aaa;
+            border: none;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .tab-buttons button.active {
+            background: #ff4757;
+            color: white;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            background: #0f3460;
+            border: 1px solid #ffffff22;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+        .form-group input:focus {
+            border-color: #ff4757;
+        }
+        .auth-btn {
+            width: 100%;
+            padding: 13px;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: opacity 0.2s;
+        }
+        .auth-btn:hover { opacity: 0.85; }
+        #auth-error {
+            color: #ff6b6b;
+            font-size: 0.85rem;
+            margin-top: 12px;
+            text-align: center;
+            min-height: 1.2rem;
+        }
+
+        /* 돌림판 화면 */
+        #wheel-screen { display: none; align-items: center; flex-direction: column; }
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 420px;
+            margin-bottom: 20px;
+        }
+        .top-bar span { font-size: 0.9rem; color: #aaa; }
+        .logout-btn {
+            padding: 6px 16px;
+            background: transparent;
+            color: #ff4757;
+            border: 1px solid #ff4757;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+        .logout-btn:hover { background: #ff4757; color: white; }
+        h1 { margin-bottom: 24px; font-size: 2rem; letter-spacing: 2px; }
         .wheel-container {
             position: relative;
             width: 400px;
@@ -34,8 +133,8 @@
             border-right: 40px solid #ff4757;
             filter: drop-shadow(0 0 6px #ff4757);
         }
-        button {
-            margin-top: 40px;
+        #spinBtn {
+            margin-top: 36px;
             padding: 14px 50px;
             font-size: 1.2rem;
             background: #ff4757;
@@ -43,11 +142,11 @@
             border: none;
             border-radius: 50px;
             cursor: pointer;
-            transition: transform 0.1s, box-shadow 0.1s;
+            transition: transform 0.1s;
             box-shadow: 0 4px 20px rgba(255,71,87,0.5);
         }
-        button:hover { transform: scale(1.05); }
-        button:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+        #spinBtn:hover { transform: scale(1.05); }
+        #spinBtn:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
         #result {
             margin-top: 24px;
             font-size: 1.6rem;
@@ -59,34 +158,132 @@
     </style>
 </head>
 <body>
-    <h1>🎡 돌림판</h1>
-    <div class="wheel-container">
-        <canvas id="wheel" width="400" height="400"></canvas>
-        <div class="pointer"></div>
-    </div>
-    <button id="spinBtn" onclick="spin()">돌리기!</button>
-    <div id="result"></div>
 
-    <script>
+    <!-- 로그인/회원가입 화면 -->
+    <div id="auth-screen">
+        <h2>🎡 돌림판</h2>
+        <div class="tab-buttons">
+            <button class="active" onclick="switchTab('login')">로그인</button>
+            <button onclick="switchTab('signup')">회원가입</button>
+        </div>
+        <div class="form-group">
+            <label>이메일</label>
+            <input type="email" id="email" placeholder="example@email.com">
+        </div>
+        <div class="form-group">
+            <label>비밀번호</label>
+            <input type="password" id="password" placeholder="6자 이상">
+        </div>
+        <button class="auth-btn" id="authBtn" onclick="handleAuth()">로그인</button>
+        <div id="auth-error"></div>
+    </div>
+
+    <!-- 돌림판 화면 -->
+    <div id="wheel-screen">
+        <div class="top-bar">
+            <span id="user-email"></span>
+            <button class="logout-btn" onclick="logout()">로그아웃</button>
+        </div>
+        <h1>🎡 돌림판</h1>
+        <div class="wheel-container">
+            <canvas id="wheel" width="400" height="400"></canvas>
+            <div class="pointer"></div>
+        </div>
+        <button id="spinBtn" onclick="spin()">돌리기!</button>
+        <div id="result"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword,
+            signInWithEmailAndPassword,
+            signOut,
+            onAuthStateChanged
+        } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-C3OWNtuL2Nyi-C1ANamNJMD8OfzZnn0",
+            authDomain: "hello-wheel.firebaseapp.com",
+            projectId: "hello-wheel",
+            storageBucket: "hello-wheel.firebasestorage.app",
+            messagingSenderId: "847178852261",
+            appId: "1:847178852261:web:f656240a69a7dfe67fea4c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // 로그인 상태 감지
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.getElementById("auth-screen").style.display = "none";
+                document.getElementById("wheel-screen").style.display = "flex";
+                document.getElementById("user-email").textContent = user.email;
+                drawWheel(0);
+            } else {
+                document.getElementById("auth-screen").style.display = "block";
+                document.getElementById("wheel-screen").style.display = "none";
+            }
+        });
+
+        // 전역 함수 등록
+        let isLogin = true;
+
+        window.switchTab = (tab) => {
+            isLogin = tab === "login";
+            document.getElementById("authBtn").textContent = isLogin ? "로그인" : "회원가입";
+            document.getElementById("auth-error").textContent = "";
+            const btns = document.querySelectorAll(".tab-buttons button");
+            btns[0].classList.toggle("active", isLogin);
+            btns[1].classList.toggle("active", !isLogin);
+        };
+
+        window.handleAuth = async () => {
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const errEl = document.getElementById("auth-error");
+            errEl.textContent = "";
+            try {
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+            } catch (e) {
+                const msgs = {
+                    "auth/invalid-email": "이메일 형식이 올바르지 않습니다.",
+                    "auth/user-not-found": "등록되지 않은 이메일입니다.",
+                    "auth/wrong-password": "비밀번호가 틀렸습니다.",
+                    "auth/email-already-in-use": "이미 사용 중인 이메일입니다.",
+                    "auth/weak-password": "비밀번호는 6자 이상이어야 합니다.",
+                    "auth/invalid-credential": "이메일 또는 비밀번호가 틀렸습니다."
+                };
+                errEl.textContent = msgs[e.code] || "오류가 발생했습니다: " + e.code;
+            }
+        };
+
+        window.logout = () => signOut(auth);
+
+        // 돌림판
         const items = ["1등", "2등", "3등", "꽝", "재도전", "꽝", "특별상", "꽝"];
         const colors = ["#ff6b6b","#feca57","#48dbfb","#ff9ff3","#54a0ff","#5f27cd","#00d2d3","#ff9f43"];
-
-        const canvas = document.getElementById("wheel");
-        const ctx = canvas.getContext("2d");
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        const radius = cx - 10;
-        const arc = (2 * Math.PI) / items.length;
-
         let currentAngle = 0;
         let spinning = false;
 
-        function drawWheel(angle) {
+        window.drawWheel = (angle) => {
+            const canvas = document.getElementById("wheel");
+            if (!canvas) return;
+            const ctx = canvas.getContext("2d");
+            const cx = canvas.width / 2, cy = canvas.height / 2;
+            const radius = cx - 10;
+            const arc = (2 * Math.PI) / items.length;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             items.forEach((item, i) => {
                 const start = angle + i * arc;
                 const end = start + arc;
-
                 ctx.beginPath();
                 ctx.moveTo(cx, cy);
                 ctx.arc(cx, cy, radius, start, end);
@@ -95,7 +292,6 @@
                 ctx.strokeStyle = "#1a1a2e";
                 ctx.lineWidth = 2;
                 ctx.stroke();
-
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(start + arc / 2);
@@ -107,8 +303,6 @@
                 ctx.fillText(item, radius - 15, 6);
                 ctx.restore();
             });
-
-            // 중앙 원
             ctx.beginPath();
             ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
             ctx.fillStyle = "#1a1a2e";
@@ -116,45 +310,37 @@
             ctx.strokeStyle = "white";
             ctx.lineWidth = 3;
             ctx.stroke();
-        }
+        };
 
-        function spin() {
+        window.spin = () => {
             if (spinning) return;
             spinning = true;
             document.getElementById("spinBtn").disabled = true;
             document.getElementById("result").textContent = "";
-
             const totalRotation = (Math.random() * 360 + 1440) * (Math.PI / 180);
             const duration = 4000;
             const start = performance.now();
             const startAngle = currentAngle;
+            const arc = (2 * Math.PI) / items.length;
 
             function animate(now) {
                 const elapsed = now - start;
                 const progress = Math.min(elapsed / duration, 1);
                 const ease = 1 - Math.pow(1 - progress, 4);
                 currentAngle = startAngle + totalRotation * ease;
-                drawWheel(currentAngle);
-
+                window.drawWheel(currentAngle);
                 if (progress < 1) {
                     requestAnimationFrame(animate);
                 } else {
                     spinning = false;
                     document.getElementById("spinBtn").disabled = false;
-                    showResult();
+                    const normalized = ((2 * Math.PI) - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
+                    const index = Math.floor(normalized / arc) % items.length;
+                    document.getElementById("result").textContent = "🎉 " + items[index] + "!";
                 }
             }
             requestAnimationFrame(animate);
-        }
-
-        function showResult() {
-            // 포인터는 오른쪽(0도) → 각도 기준으로 결과 계산
-            const normalized = ((2 * Math.PI) - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
-            const index = Math.floor(normalized / arc) % items.length;
-            document.getElementById("result").textContent = "🎉 " + items[index] + "!";
-        }
-
-        drawWheel(0);
+        };
     </script>
 </body>
 </html>
