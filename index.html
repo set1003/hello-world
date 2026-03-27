@@ -307,10 +307,20 @@
         window.logout = () => signOut(auth);
 
         // 페이지 로드 시 리다이렉트 결과 처리
-        getRedirectResult(auth).catch(() => {});
+        getRedirectResult(auth).then((result) => {
+            if (result && result.user) {
+                // onAuthStateChanged가 자동으로 화면 전환 처리
+            }
+        }).catch((e) => {
+            if (e.code !== "auth/cancelled-popup-request") {
+                const errEl = document.getElementById("auth-error");
+                if (errEl) errEl.textContent = "Google 로그인 실패: " + e.code;
+            }
+        });
 
         window.loginWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
+            provider.setCustomParameters({ prompt: "select_account" });
             await signInWithRedirect(auth, provider);
         };
 
