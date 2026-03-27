@@ -229,6 +229,9 @@
         <div id="result"></div>
     </div>
 
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async></script>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
@@ -239,8 +242,7 @@
             signOut,
             onAuthStateChanged,
             GoogleAuthProvider,
-            signInWithRedirect,
-            getRedirectResult
+            signInWithCredential
         } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -306,22 +308,24 @@
 
         window.logout = () => signOut(auth);
 
-        // 페이지 로드 시 리다이렉트 결과 처리
-        getRedirectResult(auth).then((result) => {
-            if (result && result.user) {
-                // onAuthStateChanged가 자동으로 화면 전환 처리
+        // Google Identity Services 초기화
+        window.handleGoogleCredential = async (response) => {
+            const errEl = document.getElementById("auth-error");
+            try {
+                const credential = GoogleAuthProvider.credential(response.credential);
+                await signInWithCredential(auth, credential);
+            } catch (e) {
+                errEl.textContent = "Google 로그인 실패: " + e.code;
             }
-        }).catch((e) => {
-            if (e.code !== "auth/cancelled-popup-request") {
-                const errEl = document.getElementById("auth-error");
-                if (errEl) errEl.textContent = "Google 로그인 실패: " + e.code;
-            }
-        });
+        };
 
-        window.loginWithGoogle = async () => {
-            const provider = new GoogleAuthProvider();
-            provider.setCustomParameters({ prompt: "select_account" });
-            await signInWithRedirect(auth, provider);
+        window.loginWithGoogle = () => {
+            google.accounts.id.initialize({
+                client_id: "847178852261-qv8riceehglbn9kboir2k6qksicle0l3.apps.googleusercontent.com",
+                callback: window.handleGoogleCredential,
+                ux_mode: "popup"
+            });
+            google.accounts.id.prompt();
         };
 
         // 돌림판
