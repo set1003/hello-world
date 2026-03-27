@@ -239,7 +239,8 @@
             signOut,
             onAuthStateChanged,
             GoogleAuthProvider,
-            signInWithPopup
+            signInWithRedirect,
+            getRedirectResult
         } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -305,17 +306,12 @@
 
         window.logout = () => signOut(auth);
 
+        // 페이지 로드 시 리다이렉트 결과 처리
+        getRedirectResult(auth).catch(() => {});
+
         window.loginWithGoogle = async () => {
-            const errEl = document.getElementById("auth-error");
-            errEl.textContent = "";
-            try {
-                const provider = new GoogleAuthProvider();
-                await signInWithPopup(auth, provider);
-            } catch (e) {
-                if (e.code !== "auth/popup-closed-by-user") {
-                    errEl.textContent = "Google 로그인 실패: " + e.code;
-                }
-            }
+            const provider = new GoogleAuthProvider();
+            await signInWithRedirect(auth, provider);
         };
 
         // 돌림판
