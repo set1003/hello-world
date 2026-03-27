@@ -2,9 +2,159 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Hello World</title>
+    <title>돌림판</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+        }
+        h1 { margin-bottom: 30px; font-size: 2rem; letter-spacing: 2px; }
+        .wheel-container {
+            position: relative;
+            width: 400px;
+            height: 400px;
+        }
+        canvas { border-radius: 50%; }
+        .pointer {
+            position: absolute;
+            top: 50%;
+            right: -20px;
+            transform: translateY(-50%);
+            width: 0;
+            height: 0;
+            border-top: 20px solid transparent;
+            border-bottom: 20px solid transparent;
+            border-right: 40px solid #ff4757;
+            filter: drop-shadow(0 0 6px #ff4757);
+        }
+        button {
+            margin-top: 40px;
+            padding: 14px 50px;
+            font-size: 1.2rem;
+            background: #ff4757;
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            box-shadow: 0 4px 20px rgba(255,71,87,0.5);
+        }
+        button:hover { transform: scale(1.05); }
+        button:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+        #result {
+            margin-top: 24px;
+            font-size: 1.6rem;
+            font-weight: bold;
+            min-height: 2rem;
+            color: #ffd32a;
+            text-shadow: 0 0 10px #ffd32a88;
+        }
+    </style>
 </head>
 <body>
-    <h1>Hello, World!</h1>
+    <h1>🎡 돌림판</h1>
+    <div class="wheel-container">
+        <canvas id="wheel" width="400" height="400"></canvas>
+        <div class="pointer"></div>
+    </div>
+    <button id="spinBtn" onclick="spin()">돌리기!</button>
+    <div id="result"></div>
+
+    <script>
+        const items = ["1등", "2등", "3등", "꽝", "재도전", "꽝", "특별상", "꽝"];
+        const colors = ["#ff6b6b","#feca57","#48dbfb","#ff9ff3","#54a0ff","#5f27cd","#00d2d3","#ff9f43"];
+
+        const canvas = document.getElementById("wheel");
+        const ctx = canvas.getContext("2d");
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = cx - 10;
+        const arc = (2 * Math.PI) / items.length;
+
+        let currentAngle = 0;
+        let spinning = false;
+
+        function drawWheel(angle) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            items.forEach((item, i) => {
+                const start = angle + i * arc;
+                const end = start + arc;
+
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, radius, start, end);
+                ctx.fillStyle = colors[i % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = "#1a1a2e";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(start + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 18px Segoe UI";
+                ctx.shadowColor = "rgba(0,0,0,0.4)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(item, radius - 15, 6);
+                ctx.restore();
+            });
+
+            // 중앙 원
+            ctx.beginPath();
+            ctx.arc(cx, cy, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = "#1a1a2e";
+            ctx.fill();
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+
+        function spin() {
+            if (spinning) return;
+            spinning = true;
+            document.getElementById("spinBtn").disabled = true;
+            document.getElementById("result").textContent = "";
+
+            const totalRotation = (Math.random() * 360 + 1440) * (Math.PI / 180);
+            const duration = 4000;
+            const start = performance.now();
+            const startAngle = currentAngle;
+
+            function animate(now) {
+                const elapsed = now - start;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = 1 - Math.pow(1 - progress, 4);
+                currentAngle = startAngle + totalRotation * ease;
+                drawWheel(currentAngle);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    spinning = false;
+                    document.getElementById("spinBtn").disabled = false;
+                    showResult();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function showResult() {
+            // 포인터는 오른쪽(0도) → 각도 기준으로 결과 계산
+            const normalized = ((2 * Math.PI) - (currentAngle % (2 * Math.PI))) % (2 * Math.PI);
+            const index = Math.floor(normalized / arc) % items.length;
+            document.getElementById("result").textContent = "🎉 " + items[index] + "!";
+        }
+
+        drawWheel(0);
+    </script>
 </body>
 </html>
